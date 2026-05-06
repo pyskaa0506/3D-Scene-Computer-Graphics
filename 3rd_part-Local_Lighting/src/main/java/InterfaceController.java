@@ -18,19 +18,20 @@ public class InterfaceController {
         this.scene = view.getScene();
         addLightSourceControl();
         addInputListeners();
+        addSelectListeners();
     }   
 
     private void addInputListeners(){
         addInputListener(view.kd,(Double kd) -> {
-            rmodel.setDiffuseReflection(kd);
+            rmodel.setDiffuseReflection(kd, view.getDisplayedChannel());
             scene.repaint();
         });
         addInputListener(view.ka,(Double ka) -> {
-            rmodel.setAmbientReflection(ka);
+            rmodel.setAmbientReflection(ka, view.getDisplayedChannel());
             scene.repaint();
         });
         addInputListener(view.ks,(Double ks) -> {
-            rmodel.setSpecularReflection(ks);
+            rmodel.setSpecularReflection(ks, view.getDisplayedChannel());
             scene.repaint();
         });
         addInputListener(view.ia,(Double ia) -> {
@@ -97,12 +98,47 @@ public class InterfaceController {
                         case KeyEvent.VK_DOWN : moveSourceDown(); break;
                         case KeyEvent.VK_RIGHT : moveSourceRight(); break;
                         case KeyEvent.VK_LEFT : moveSourceLeft(); break;
+                        case KeyEvent.VK_1 : {
+                            rmodel.setReflectionCoefficients(PhongConstants.K_COPPER);
+                            rmodel.setSurfaceCoefficient(PhongConstants.N_COPPER);
+                            view.setDisplayedChannel(0);
+                            scene.repaint();
+                            view.setTitle("Miedź");
+                            break;
+                        }
+                        case KeyEvent.VK_2 : {
+                            rmodel.setReflectionCoefficients(PhongConstants.K_GOLD);
+                            rmodel.setSurfaceCoefficient(PhongConstants.N_GOLD);
+                            scene.repaint();
+                            view.setDisplayedChannel(0);
+                            view.setTitle("Złoto");
+                            break;
+                        }
+                        case KeyEvent.VK_3 : {
+                            rmodel.setReflectionCoefficients(PhongConstants.K_SILVER);
+                            rmodel.setSurfaceCoefficient(PhongConstants.N_SILVER);
+                            scene.repaint();
+                            view.setDisplayedChannel(0);
+                            view.setTitle("Srebro");
+                            break;
+                        }
+                
                 }
             }
         });
     }
-    private void addModelSelectListener() {
+    private void addSelectListeners() {
         view.modelSelect.addItemListener((ItemEvent e) -> model.setCurrentReflectionModel((PhongModel)e.getItem()));
+        view.channelSelect.addItemListener((ItemEvent e) -> {
+            char channelId = ((String)e.getItem()).charAt(6);
+            switch(channelId){
+                case 'R' : view.setDisplayedChannel(0); break;
+                case 'G' : view.setDisplayedChannel(1); break;
+                case 'B' : view.setDisplayedChannel(2); break;
+            }
+            
+            }
+        );
     }
     private void moveSourceUp() {
         int [] srcPos = rmodel.getSourcePosition();

@@ -1,12 +1,16 @@
 public class PhongModel{
 
-    protected double [] reflectionCoefficients = new double[] {1.5,0.25,1};
-    protected double [] lightIntensity = new double[]{35,400};
-    protected double surfaceCoefficient = 50;
+    protected double [][] reflectionCoefficients = new double[][] {
+        {0.19125,0.7038,0.256777},
+        {0.0735,0.27048,0.137622},
+        {0.0225,0.0828,0.086014}
+    };
+    protected double [] lightIntensity = new double[]{35,180};
+    protected double surfaceCoefficient = 12.8;
     protected double sourceDumping = 1.0;
     protected int [] sourcePos = new int []{100,0,300};
     protected double [] scenePos = null;
-    protected double bumpScale = 0.1;
+    protected double bumpScale = 0.0;
     
     public void setScene(double [] center){
         scenePos = center;
@@ -19,8 +23,8 @@ public class PhongModel{
         nx /= nLen; ny /= nLen; nz /= nLen;
         return new double [] {nx,ny,nz};
     }
-    protected double getAmbient(){
-        return lightIntensity[0] * reflectionCoefficients[0];
+    protected double getAmbient(int channel){
+        return lightIntensity[0] * reflectionCoefficients[channel][0];
     }
     protected double[] getLightVector(double nx,double ny,double nz){
         double [] lv = new double [3];
@@ -34,13 +38,13 @@ public class PhongModel{
         lv[2]/=lLen;
         return lv;
     }
-    protected double getDiffuse(double nx,double ny,double nz){
+    protected double getDiffuse(double nx,double ny,double nz, int channel){
         double [] l = getLightVector(nx,ny,nz);
         double product  = l[0]*nx+l[1]*ny+l[2]*nz;
 
-        return sourceDumping * lightIntensity[1] * reflectionCoefficients[1] * product;
+        return sourceDumping * lightIntensity[1] * reflectionCoefficients[channel][1] * product;
     }
-    protected double getSpecular(double nx, double ny, double nz) {
+    protected double getSpecular(double nx, double ny, double nz, int channel) {
         double [] l = getLightVector(nx,ny,nz);
         double [] r = new double [3];
         //r[0] = 2*nx*(ny*l[2] - nz *l[1]) - 0;
@@ -51,37 +55,43 @@ public class PhongModel{
         r[0] = 2.0 * dotNL * nx - l[0];
         r[1] = 2.0 * dotNL * ny - l[1];
         r[2] = 2.0 * dotNL * nz - l[2];
-        return sourceDumping * lightIntensity[1] * reflectionCoefficients[2] * Math.pow(Math.max(0,r[2]),surfaceCoefficient);
+        return sourceDumping * lightIntensity[1] * reflectionCoefficients[channel][2] * Math.pow(Math.max(0,r[2]),surfaceCoefficient);
 
     }
-    public double getValue(double nx, double ny, double nz){
+    public int getValue(double nx, double ny, double nz){
         double[] bumpedN = bumpNormal(nx,ny,nz);
         nx = bumpedN[0];
         ny = bumpedN[1];
         nz = bumpedN[2];
-        double resultValue = getAmbient() + getDiffuse(nx,ny,nz) + getSpecular(nx,ny,nz);
-        double result = Math.min(1,Math.max(0,resultValue/300));
-        //return (result <<16) | (result<<8) | result;
-        return result;
+
+        int [] result = new int[3];
+        for(int i=0; i<3 ; i++)
+            result[i] =(int) Math.min(255,Math.max(0,getAmbient(i) + getDiffuse(nx,ny,nz,i) + getSpecular(nx,ny,nz,i)));
+        //double result = Math.min(1,Math.max(0,resultValue/300));
+        return (result[0] <<16) | (result[1]<<8) | result[2];
+        //return result;
     }
     
     public String toString(){
         return "Phong model";
     }
-    public void setDiffuseReflection(double kd){
-        this.reflectionCoefficients[1] = kd;
+    public void setReflectionCoefficients(double [][] coefficients){
+        reflectionCoefficients = coefficients;
+    }
+    public void setDiffuseReflection(double kd, int channel){
+        this.reflectionCoefficients[channel][1] = kd;
     }
 
     public void setSourceIntensity(double ip){
         this.lightIntensity[1] = ip;
     }
 
-    public void setSpecularReflection(double ks){
-        this.reflectionCoefficients[2] = ks;
+    public void setSpecularReflection(double ks, int channel){
+        this.reflectionCoefficients[channel][2] = ks;
     }
 
-    public void setAmbientReflection(double ka){
-        this.reflectionCoefficients[0] = ka;
+    public void setAmbientReflection(double ka, int channel){
+        this.reflectionCoefficients[channel][0] = ka;
     }
 
     public void setAmbientIntensity(double ia){
@@ -108,7 +118,7 @@ public class PhongModel{
         bumpScale = bs;
     }
 
-    public double [] getReflectionCoefficients(){
+    public double [][] getReflectionCoefficients(){
         return reflectionCoefficients;
     }
 

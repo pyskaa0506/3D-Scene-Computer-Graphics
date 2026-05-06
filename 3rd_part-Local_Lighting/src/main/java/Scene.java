@@ -3,7 +3,7 @@ import javax.swing.*;
 import java.awt.image.BufferedImage;
 public class Scene extends JPanel {
 
-    private double [] sphere = new double [] {400,200,0,70};
+    private double [] sphere = new double [] {400,200,0,140};
     private PhongModel lightingModel = null;
     
     public Scene (PhongModel model){
@@ -29,8 +29,9 @@ public class Scene extends JPanel {
 
                 if(distSq <= radius*radius) {
                     double z = Math.sqrt(radius * radius - distSq);
-                    float brightness = (float)lightingModel.getValue(x/(double)radius,y/(double)radius,z/(double)radius);
-                    color = Color.HSBtoRGB(0.0875f,1f,brightness);
+                    //float brightness = (float)lightingModel.getValue(x/(double)radius,y/(double)radius,z/(double)radius);
+                    //color = Color.HSBtoRGB(0.0875f,1f,brightness);
+                    color = lightingModel.getValue(x/(double)radius,y/(double)radius,z/(double)radius);
                     img.setRGB((int)(sphere[0]+x), (int)(sphere[1]+y), color);
                 }
                 

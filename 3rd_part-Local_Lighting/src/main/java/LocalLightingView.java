@@ -7,16 +7,18 @@ public class LocalLightingView extends JFrame{
 
     private Scene scene =null;
     public JTextField kd,ka,ks,ia,ip,f,n,b =null;
-    public JComboBox modelSelect;
+    public JComboBox modelSelect, channelSelect;
     private LocalLightingModel model=null;
+    private int displayedChanel = 0;
     public LocalLightingView (LocalLightingModel model) {
         super();
         scene = new Scene(model.getCurrentReflectionModel());
         this.model = model;
         buildLayout();
-        displayInitialParams();
+        updateParamsDisplay();
         add(scene, BorderLayout.CENTER);
         setVisible(true);
+        setTitle("Miedź");
         
     }
     private JTextField buildMenuInput(String label, JPanel sideMenu){
@@ -27,7 +29,7 @@ public class LocalLightingView extends JFrame{
         sideMenu.add(txt);
         return txt;
     }
-    private JComboBox addModelSelect(JPanel sideMenu, PhongModel[] models){
+    private JComboBox addSelect(JPanel sideMenu, Object[] models){
         
         JComboBox combo = new JComboBox(models);
         combo.setMaximumSize(new Dimension(Integer.MAX_VALUE, combo.getPreferredSize().height));
@@ -46,7 +48,8 @@ public class LocalLightingView extends JFrame{
         sideMenu.setBackground(Color.LIGHT_GRAY);
         sideMenu.setPreferredSize(new Dimension(200, 0));
         sideMenu.setLayout(new BoxLayout(sideMenu, BoxLayout.Y_AXIS));
-        modelSelect=addModelSelect(sideMenu,model.getReflectionModels());
+        modelSelect=addSelect(sideMenu,model.getReflectionModels());
+        channelSelect = addSelect(sideMenu,model.CHANNEL_LABELS);
         sideMenu.add(Box.createVerticalStrut(5));
         kd = buildMenuInput("Wsp. odbicia św. rozprosz.:", sideMenu);
         ka = buildMenuInput("Wsp. odbicia św. z otoczenia:", sideMenu);
@@ -59,15 +62,22 @@ public class LocalLightingView extends JFrame{
         add(sideMenu, BorderLayout.LINE_END);
     }
 
-    private void displayInitialParams(){
-        double [] k = model.getCurrentReflectionModel().getReflectionCoefficients();
+    public void setDisplayedChannel(int ch){
+        displayedChanel = ch;
+        updateParamsDisplay();
+    }
+    public int getDisplayedChannel(){
+        return displayedChanel;
+    }
+    public void updateParamsDisplay(){
+        double [][] k = model.getCurrentReflectionModel().getReflectionCoefficients();
         double [] i = model.getCurrentReflectionModel().getLightIntensities();
         double fValue = model.getCurrentReflectionModel().getSourceDumping();
         double nValue = model.getCurrentReflectionModel().getSurfaceCoefficient();
         double bs = model.getCurrentReflectionModel().getBumpScale();
-        ka.setText(""+k[0]);
-        kd.setText(""+k[1]);
-        ks.setText(""+k[2]);
+        ka.setText(""+k[displayedChanel][0]);
+        kd.setText(""+k[displayedChanel][1]);
+        ks.setText(""+k[displayedChanel][2]);
         ia.setText(""+i[0]);
         ip.setText(""+i[1]);
         f.setText(""+fValue);
