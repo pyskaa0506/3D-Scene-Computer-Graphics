@@ -3,55 +3,78 @@ import numpy as np
 import sys
 import json
 
+
 pygame.init()
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1280, 720
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Kamera 3D")
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 LIME = (0, 255, 0)
-STEP = 0.5
-ANGLE_STEP = np.radians(5)
+STEP = 0.1
+ANGLE_STEP = np.radians(1)
 
-zoom = 400
 
 with open('scene.json', 'r') as scene_file:
     scene_data = json.load(scene_file)
 
 vertices = np.array(scene_data['vertices'], dtype=np.float32)
-edges = scene_data['edges']
+faces = scene_data['faces']
 
+original_vertices = vertices.copy()
+original_zoom = 500
+zoom = original_zoom
+
+def reset_scene():
+    global vertices, zoom
+    vertices = original_vertices.copy()
+    zoom = original_zoom
 
 def draw_scene():
     screen.fill(BLACK)
 
-    for edge in edges:
-        v1 = vertices[edge[0]]
-        v2 = vertices[edge[1]]
+    polygons_to_draw = []
 
-        if v1[2] < 0.1 or v2[2] < 0.1:
+    for face in faces:
+        indices = face['indices']
+        color = face['color']
+        
+        face_vertices = [vertices[i] for i in indices]
+
+        if any(v[2] < 0.1 for v in face_vertices):
             continue
 
-        z1 = v1[2] if v1[2] != 0 else 0.0001
-        z2 = v2[2] if v2[2] != 0 else 0.0001
+        projected_points = []
+        max_z = max(v[2] for v in face_vertices)
 
-        x1_proj = v1[0] * zoom / z1
-        y1_proj = v1[1] * zoom / z1
+        for v in face_vertices:
+            z = v[2]
+            print(z)
+            x_proj = v[0] * zoom / z
+            y_proj = v[1] * zoom / z
 
-        x2_proj = v2[0] * zoom / z2
-        y2_proj = v2[1] * zoom / z2
+            x_resized = int(x_proj + WIDTH / 2)
+            y_resized = int(-y_proj + HEIGHT / 2)
 
-        x1_resized = int(x1_proj + WIDTH / 2)
-        y1_resized = int(-y1_proj + HEIGHT / 2)
-        x2_resized = int(x2_proj + WIDTH / 2)
-        y2_resized = int(-y2_proj + HEIGHT / 2)
+            projected_points.append((x_resized, y_resized))
 
-        try:
-            pygame.draw.line(screen, LIME, (x1_resized, y1_resized), (x2_resized, y2_resized), 2)
-        except TypeError:
-            pass
+
+        one_face = {
+        "points": projected_points,
+        "color": color,
+        "max_z": max_z,
+        "original_vertices": face_vertices
+        }
+        polygons_to_draw.append(one_face)
+
+    polygons_to_draw.sort(key=lambda p: p['max_z'], reverse=True)
+
+    for polygon in polygons_to_draw:
+        pygame.draw.polygon(screen, polygon['color'], polygon['points'])
+        pygame.draw.polygon(screen, LIME, polygon['points'], 1)
     pygame.display.flip()
+    
 draw_scene()
 
 def translate_scene(dx, dy, dz):
@@ -84,75 +107,98 @@ def rotate_scene(axis, angle):
                                     [0, 0, 0, 1]], dtype=np.float32)
     vertices = np.dot(vertices, rotation_matrix.T)
 
+
+clock = pygame.time.Clock()
+
 running = True
+draw_scene()
 while running:
     for event in pygame.event.get():
-        
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             running = False
 
-        elif event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+            reset_scene()
+            draw_scene()
+
+    keys = pygame.key.get_pressed()
+    needs_redraw = False
 
             # Moving around
-            if event.key == pygame.K_LEFT:
-                translate_scene(STEP, 0, 0)
-                draw_scene()
+    if keys[pygame.K_LEFT]:
+        translate_scene(STEP, 0, 0)
+        needs_redraw = True
 
-            if event.key == pygame.K_RIGHT:
-                translate_scene(-STEP, 0, 0)
-                draw_scene()
+    if keys[pygame.K_RIGHT]:
+        translate_scene(-STEP, 0, 0)
+        needs_redraw = True
 
-            if event.key == pygame.K_UP:
-                translate_scene(0, 0, -STEP)
-                draw_scene()
+    if keys[pygame.K_UP]:
+        translate_scene(0, 0, -STEP)
+        needs_redraw = True
 
-            if event.key == pygame.K_DOWN:
-                translate_scene(0, 0, STEP)
-                draw_scene()
+    if keys[pygame.K_DOWN]:
+        translate_scene(0, 0, STEP)
+        needs_redraw = True
 
-            if event.key == pygame.K_SPACE:
-                translate_scene(0, -STEP, 0)
-                draw_scene()
+    if keys[pygame.K_RIGHT]:
+        translate_scene(-STEP, 0, 0)
+        needs_redraw = True
 
-            if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
-                translate_scene(0, STEP, 0)
-                draw_scene()
+    if keys[pygame.K_UP]:
+        translate_scene(0, 0, -STEP)
+        needs_redraw = True
+
+    if keys[pygame.K_DOWN]:
+        translate_scene(0, 0, STEP)
+        needs_redraw = True
+
+    if keys[pygame.K_SPACE]:
+        translate_scene(0, -STEP, 0)
+        needs_redraw = True
+
+    if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+        translate_scene(0, STEP, 0)
+        needs_redraw = True
 
             # --------
             # Rotation
-            if event.key == pygame.K_a:
-                rotate_scene('y', ANGLE_STEP)
-                draw_scene()
+    if keys[pygame.K_a]:
+        rotate_scene('y', ANGLE_STEP)
+        needs_redraw = True
 
-            if event.key == pygame.K_d:
-                rotate_scene('y', -ANGLE_STEP)
-                draw_scene()
+    if keys[pygame.K_d]:
+        rotate_scene('y', -ANGLE_STEP)
+        needs_redraw = True
 
-            if event.key == pygame.K_w:
-                rotate_scene('x', ANGLE_STEP)
-                draw_scene()
+    if keys[pygame.K_w]:
+        rotate_scene('x', ANGLE_STEP)
+        needs_redraw = True
 
-            if event.key == pygame.K_s:
-                rotate_scene('x', -ANGLE_STEP)
-                draw_scene()
+    if keys[pygame.K_s]:
+        rotate_scene('x', -ANGLE_STEP)
+        needs_redraw = True
 
-            if event.key == pygame.K_q:
-                rotate_scene('z', ANGLE_STEP)
-                draw_scene()
+    if keys[pygame.K_q]:
+        rotate_scene('z', ANGLE_STEP)
+        needs_redraw = True
 
-            if event.key == pygame.K_e:
-                rotate_scene('z', -ANGLE_STEP)
-                draw_scene()
+    if keys[pygame.K_e]:
+        rotate_scene('z', -ANGLE_STEP)
+        needs_redraw = True
 
             # --------
             # Zoom
-            if event.key == pygame.K_EQUALS:
-                zoom += 20
-                draw_scene()
+    if keys[pygame.K_EQUALS]:
+        zoom += 20
+        needs_redraw = True
 
-            if event.key == pygame.K_MINUS:
-                zoom -= 20
-                draw_scene()
+    if keys[pygame.K_MINUS]:
+        zoom -= 20
+        needs_redraw = True
+    
+    if needs_redraw: draw_scene()
+    clock.tick(60)
         
 
 pygame.quit()
