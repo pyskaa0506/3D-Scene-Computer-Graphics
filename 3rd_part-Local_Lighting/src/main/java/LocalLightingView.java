@@ -1,0 +1,81 @@
+import javax.swing.*;
+import javax.swing.event.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.regex.*;
+public class LocalLightingView extends JFrame{
+
+    private Scene scene =null;
+    public JTextField kd,ka,ks,ia,ip,f,n,b =null;
+    public JComboBox modelSelect;
+    private LocalLightingModel model=null;
+    public LocalLightingView (LocalLightingModel model) {
+        super();
+        scene = new Scene(model.getCurrentReflectionModel());
+        this.model = model;
+        buildLayout();
+        displayInitialParams();
+        add(scene, BorderLayout.CENTER);
+        setVisible(true);
+        
+    }
+    private JTextField buildMenuInput(String label, JPanel sideMenu){
+        JTextField txt = new JTextField();
+        txt.setMaximumSize(new Dimension(Integer.MAX_VALUE, txt.getPreferredSize().height));
+        sideMenu.add(new  JLabel(label));
+        sideMenu.add(Box.createVerticalStrut(5));
+        sideMenu.add(txt);
+        return txt;
+    }
+    private JComboBox addModelSelect(JPanel sideMenu, PhongModel[] models){
+        
+        JComboBox combo = new JComboBox(models);
+        combo.setMaximumSize(new Dimension(Integer.MAX_VALUE, combo.getPreferredSize().height));
+        sideMenu.add(Box.createVerticalStrut(5));
+        sideMenu.add(combo);
+        return combo;
+    }
+    private void buildLayout() {
+        setSize(850,400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
+
+        JPanel sideMenu = new JPanel();
+        sideMenu.setBackground(Color.LIGHT_GRAY);
+        sideMenu.setPreferredSize(new Dimension(200, 0));
+        sideMenu.setLayout(new BoxLayout(sideMenu, BoxLayout.Y_AXIS));
+        modelSelect=addModelSelect(sideMenu,model.getReflectionModels());
+        sideMenu.add(Box.createVerticalStrut(5));
+        kd = buildMenuInput("Wsp. odbicia św. rozprosz.:", sideMenu);
+        ka = buildMenuInput("Wsp. odbicia św. z otoczenia:", sideMenu);
+        ks = buildMenuInput("Wsp. odbicia św. kierunkowego:", sideMenu);
+        ip = buildMenuInput("Natężenie św. punktowego:", sideMenu);
+        ia = buildMenuInput("Natężenie św. z otoczenia:", sideMenu);
+        f = buildMenuInput("Wsp. tłumienia św. z odległ.:", sideMenu);
+        n = buildMenuInput("Wsp. gładkości powierzchni:", sideMenu);
+        b = buildMenuInput("Zaburzenie wektora N:", sideMenu);
+        add(sideMenu, BorderLayout.LINE_END);
+    }
+
+    private void displayInitialParams(){
+        double [] k = model.getCurrentReflectionModel().getReflectionCoefficients();
+        double [] i = model.getCurrentReflectionModel().getLightIntensities();
+        double fValue = model.getCurrentReflectionModel().getSourceDumping();
+        double nValue = model.getCurrentReflectionModel().getSurfaceCoefficient();
+        double bs = model.getCurrentReflectionModel().getBumpScale();
+        ka.setText(""+k[0]);
+        kd.setText(""+k[1]);
+        ks.setText(""+k[2]);
+        ia.setText(""+i[0]);
+        ip.setText(""+i[1]);
+        f.setText(""+fValue);
+        n.setText(""+ nValue);
+        b.setText(""+bs);
+    }
+    public Scene getScene() {
+        return this.scene;
+    }
+    
+}
