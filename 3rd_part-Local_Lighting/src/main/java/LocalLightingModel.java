@@ -1,24 +1,24 @@
 public class LocalLightingModel {
 
-    private PhongModel [] reflectionModels;
-    private PhongModel currentReflectionModel;
+    private ReflectionModel [] reflectionModels;
+    private ReflectionModel currentReflectionModel;
     public String[] CHANNEL_LABELS = {"Kanał R", "Kanał G", "Kanał B"};
     public LocalLightingModel() {
-        reflectionModels = new PhongModel[] {
+        reflectionModels = new ReflectionModel[] {
             new PhongModel(),
             new PhongBlinnModel()
         };
         currentReflectionModel = reflectionModels[0];
     }   
-    public PhongModel getCurrentReflectionModel(){
+    public ReflectionModel getCurrentReflectionModel(){
         return currentReflectionModel;
     }
 
-    public PhongModel [] getReflectionModels(){
+    public ReflectionModel [] getReflectionModels(){
         return reflectionModels;
     }
 
-    public void setCurrentReflectionModel(PhongModel model) {
+    public void setCurrentReflectionModel(ReflectionModel model) {
         currentReflectionModel = model;
     }
 }

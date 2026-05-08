@@ -8,7 +8,7 @@ public class InterfaceController {
     private LocalLightingView view = null;
     private LocalLightingModel model = null;
     private Scene scene = null;
-    private PhongModel rmodel = null;
+    private ReflectionModel rmodel = null;
     private int SOURCE_STEP = 20;
 
     public InterfaceController(LocalLightingModel model, LocalLightingView view){
@@ -23,35 +23,35 @@ public class InterfaceController {
 
     private void addInputListeners(){
         addInputListener(view.kd,(Double kd) -> {
-            rmodel.setDiffuseReflection(kd, view.getDisplayedChannel());
+            ((PhongModel)rmodel).setDiffuseReflection(kd, view.getDisplayedChannel());
             scene.repaint();
         });
         addInputListener(view.ka,(Double ka) -> {
-            rmodel.setAmbientReflection(ka, view.getDisplayedChannel());
+            ((PhongModel)rmodel).setAmbientReflection(ka, view.getDisplayedChannel());
             scene.repaint();
         });
         addInputListener(view.ks,(Double ks) -> {
-            rmodel.setSpecularReflection(ks, view.getDisplayedChannel());
+            ((PhongModel)rmodel).setSpecularReflection(ks, view.getDisplayedChannel());
             scene.repaint();
         });
         addInputListener(view.ia,(Double ia) -> {
-            rmodel.setAmbientIntensity(ia);
+            ((PhongModel)rmodel).setAmbientIntensity(ia);
             scene.repaint();
         });
         addInputListener(view.ip,(Double ip) -> {
-            rmodel.setSourceIntensity(ip);
+            ((PhongModel)rmodel).setSourceIntensity(ip);
             scene.repaint();
         });
         addInputListener(view.n,(Double n) -> {
-            rmodel.setSurfaceCoefficient(n);
+            ((PhongModel)rmodel).setSurfaceCoefficient(n);
             scene.repaint();
         });
         addInputListener(view.f,(Double f) -> {
-            rmodel.setSourceDumping(f);
+            ((PhongModel)rmodel).setSourceDumping(f);
             scene.repaint();
         });
         addInputListener(view.b, (Double b) -> {
-            rmodel.setBumpScale(b);
+            ((PhongModel)rmodel).setBumpScale(b);
             scene.repaint();
         });
     }
@@ -99,24 +99,24 @@ public class InterfaceController {
                         case KeyEvent.VK_RIGHT : moveSourceRight(); break;
                         case KeyEvent.VK_LEFT : moveSourceLeft(); break;
                         case KeyEvent.VK_1 : {
-                            rmodel.setReflectionCoefficients(PhongConstants.K_COPPER);
-                            rmodel.setSurfaceCoefficient(PhongConstants.N_COPPER);
+                            ((PhongModel)rmodel).setReflectionCoefficients(PhongConstants.K_COPPER);
+                            ((PhongModel)rmodel).setSurfaceCoefficient(PhongConstants.N_COPPER);
                             view.setDisplayedChannel(0);
                             scene.repaint();
                             view.setTitle("Miedź");
                             break;
                         }
                         case KeyEvent.VK_2 : {
-                            rmodel.setReflectionCoefficients(PhongConstants.K_GOLD);
-                            rmodel.setSurfaceCoefficient(PhongConstants.N_GOLD);
+                            ((PhongModel)rmodel).setReflectionCoefficients(PhongConstants.K_GOLD);
+                            ((PhongModel)rmodel).setSurfaceCoefficient(PhongConstants.N_GOLD);
                             scene.repaint();
                             view.setDisplayedChannel(0);
                             view.setTitle("Złoto");
                             break;
                         }
                         case KeyEvent.VK_3 : {
-                            rmodel.setReflectionCoefficients(PhongConstants.K_SILVER);
-                            rmodel.setSurfaceCoefficient(PhongConstants.N_SILVER);
+                            ((PhongModel)rmodel).setReflectionCoefficients(PhongConstants.K_SILVER);
+                            ((PhongModel)rmodel).setSurfaceCoefficient(PhongConstants.N_SILVER);
                             scene.repaint();
                             view.setDisplayedChannel(0);
                             view.setTitle("Srebro");
@@ -128,7 +128,13 @@ public class InterfaceController {
         });
     }
     private void addSelectListeners() {
-        view.modelSelect.addItemListener((ItemEvent e) -> model.setCurrentReflectionModel((PhongModel)e.getItem()));
+        view.modelSelect.addItemListener((ItemEvent e) -> {
+            ReflectionModel selectedReflectionModel = (ReflectionModel)e.getItem();
+            model.setCurrentReflectionModel(selectedReflectionModel);
+            this.rmodel = selectedReflectionModel;
+            scene.setLightingModel(selectedReflectionModel);
+            scene.repaint();
+        });
         view.channelSelect.addItemListener((ItemEvent e) -> {
             char channelId = ((String)e.getItem()).charAt(6);
             switch(channelId){
@@ -141,39 +147,39 @@ public class InterfaceController {
         );
     }
     private void moveSourceUp() {
-        int [] srcPos = rmodel.getSourcePosition();
+        int [] srcPos = ((PhongModel)rmodel).getSourcePosition();
         srcPos[1]= Math.max(0,srcPos[1]-SOURCE_STEP);
-        rmodel.setSourcePosition(srcPos);
+        ((PhongModel)rmodel).setSourcePosition(srcPos);
         scene.repaint();
     }
     private void moveSourceDown() {
-        int [] srcPos =rmodel.getSourcePosition();
+        int [] srcPos =((PhongModel)rmodel).getSourcePosition();
         srcPos[1]= srcPos[1]+SOURCE_STEP;
-        rmodel.setSourcePosition(srcPos);
+        ((PhongModel)rmodel).setSourcePosition(srcPos);
         scene.repaint();
     }
     private void moveSourceBack() {
-        int [] srcPos = rmodel.getSourcePosition();
+        int [] srcPos = ((PhongModel)rmodel).getSourcePosition();
         srcPos[2]= srcPos[2]+SOURCE_STEP;
-        rmodel.setSourcePosition(srcPos);
+        ((PhongModel)rmodel).setSourcePosition(srcPos);
         scene.repaint();
     }
     private void moveSourceForth() {
-        int [] srcPos = rmodel.getSourcePosition();
+        int [] srcPos = ((PhongModel)rmodel).getSourcePosition();
         srcPos[2]= Math.min(0,srcPos[2]-SOURCE_STEP);
-        rmodel.setSourcePosition(srcPos);
+        ((PhongModel)rmodel).setSourcePosition(srcPos);
         scene.repaint();
     }
     private void moveSourceLeft() {
-        int [] srcPos = rmodel.getSourcePosition();
+        int [] srcPos = ((PhongModel)rmodel).getSourcePosition();
         srcPos[0]= Math.max(0,srcPos[0]-SOURCE_STEP);
-        rmodel.setSourcePosition(srcPos);
+        ((PhongModel)rmodel).setSourcePosition(srcPos);
         scene.repaint();
     }
     private void moveSourceRight() {
-        int [] srcPos = rmodel.getSourcePosition();
+        int [] srcPos = ((PhongModel)rmodel).getSourcePosition();
         srcPos[0]= srcPos[0]+SOURCE_STEP;
-        rmodel.setSourcePosition(srcPos);
+        ((PhongModel)rmodel).setSourcePosition(srcPos);
         scene.repaint();
     }
     private boolean validateInput(String input){

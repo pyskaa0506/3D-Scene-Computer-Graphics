@@ -70,11 +70,11 @@ public class LocalLightingView extends JFrame{
         return displayedChanel;
     }
     public void updateParamsDisplay(){
-        double [][] k = model.getCurrentReflectionModel().getReflectionCoefficients();
-        double [] i = model.getCurrentReflectionModel().getLightIntensities();
-        double fValue = model.getCurrentReflectionModel().getSourceDumping();
-        double nValue = model.getCurrentReflectionModel().getSurfaceCoefficient();
-        double bs = model.getCurrentReflectionModel().getBumpScale();
+        double [][] k = ((PhongModel)model.getCurrentReflectionModel()).getReflectionCoefficients();
+        double [] i = ((PhongModel)model.getCurrentReflectionModel()).getLightIntensities();
+        double fValue = ((PhongModel)model.getCurrentReflectionModel()).getSourceDumping();
+        double nValue = ((PhongModel)model.getCurrentReflectionModel()).getSurfaceCoefficient();
+        double bs = ((PhongModel)model.getCurrentReflectionModel()).getBumpScale();
         ka.setText(""+k[displayedChanel][0]);
         kd.setText(""+k[displayedChanel][1]);
         ks.setText(""+k[displayedChanel][2]);

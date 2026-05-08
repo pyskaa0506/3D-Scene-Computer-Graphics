@@ -4,23 +4,30 @@ import java.awt.image.BufferedImage;
 public class Scene extends JPanel {
 
     private double [] sphere = new double [] {400,200,0,140};
-    private PhongModel lightingModel = null;
+    private ReflectionModel lightingModel = null;
     
-    public Scene (PhongModel model){
+    public Scene (ReflectionModel model){
         lightingModel = model;
-        lightingModel.setScene(sphere);
+        ((PhongModel)lightingModel).setScene(sphere);
 
     }
 
-    public PhongModel getLightingModel(){
+    public ReflectionModel getLightingModel(){
         return lightingModel;
     } 
+    public void setLightingModel(ReflectionModel m){
+        lightingModel = m;
+        ((PhongModel)lightingModel).setScene(sphere);
+    }
     
     public void renderScene(Graphics2D graphics){
         int w = getWidth(), h = getHeight();
         sphere[0] = w/2;
         sphere[1] = h/2;
         BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D  bgraphics = img.createGraphics();
+        bgraphics.setPaint ( new Color ( 33,33,33 ) );
+        bgraphics.fillRect ( 0, 0, img.getWidth(), img.getHeight() );
         int radius = (int)sphere[3];
         for (int y = -radius; y < radius;y++){
             int color = 0xFFFFFF;

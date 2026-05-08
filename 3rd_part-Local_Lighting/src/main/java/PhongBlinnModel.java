@@ -1,4 +1,4 @@
-public class PhongBlinnModel extends PhongModel{
+public class PhongBlinnModel extends PhongModel implements ReflectionModel{
 
     @Override
     protected double getSpecular(double nx, double ny, double nz, int channel){

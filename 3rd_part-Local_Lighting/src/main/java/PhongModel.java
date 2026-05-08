@@ -1,4 +1,4 @@
-public class PhongModel{
+public class PhongModel implements ReflectionModel{
 
     protected double [][] reflectionCoefficients = new double[][] {
         {0.19125,0.7038,0.256777},
@@ -16,9 +16,9 @@ public class PhongModel{
         scenePos = center;
     }
     protected double [] bumpNormal(double nx, double ny, double nz){
-        nx += (Math.sin(nx*scenePos[3] * 0.5)) * bumpScale;
-        ny += (Math.sin(ny*scenePos[3] * 0.7))* bumpScale;
-        nz += (Math.sin((ny+ny)*scenePos[3] * 0.07))  * bumpScale;
+        nx += (Math.sin(nx*70)) * bumpScale;
+        ny += (Math.sin(ny*98))* bumpScale;
+        nz += (Math.sin((nx+ny)*9.8))  * bumpScale;
         double nLen = Math.sqrt(nx*nx + ny*ny + nz*nz);
         nx /= nLen; ny /= nLen; nz /= nLen;
         return new double [] {nx,ny,nz};
@@ -51,7 +51,6 @@ public class PhongModel{
         //r[1] = 2*ny*(nz*l[0] - nx*l[2]) - 0;
         //r[3] = 2*nz*(nx*l[1] - ny*l[0]) - 1;
         double dotNL = nx * l[0]+ ny * l[1] + nz * l[2];
-
         r[0] = 2.0 * dotNL * nx - l[0];
         r[1] = 2.0 * dotNL * ny - l[1];
         r[2] = 2.0 * dotNL * nz - l[2];
