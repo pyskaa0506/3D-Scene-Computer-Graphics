@@ -2,7 +2,6 @@ import pygame
 import numpy as np
 import sys
 import json
-from functools import cmp_to_key
 
 
 pygame.init()
@@ -20,10 +19,110 @@ ANGLE_STEP = np.radians(1)
 with open('scene.json', 'r') as scene_file:
     scene_data = json.load(scene_file)
 
-vertices = np.array(scene_data['vertices'], dtype=np.float32)
+vertices_list = scene_data['vertices']
 faces = scene_data['faces']
 
-original_vertices = vertices.copy()
+class BSPNode:
+    def __init__(self, face):
+        self.face = face
+        self.front = None
+        self.back = None
+
+
+def get_plane_equation(face, vertices):
+    v0 = np.array(vertices[face['indices'][0]][:3])
+    v1 = np.array(vertices[face['indices'][1]][:3])
+    v2 = np.array(vertices[face['indices'][2]][:3])
+
+    vec1 = v1 - v0
+    vec2 = v2 - v0
+    normal = np.cross(vec1, vec2)
+    length = np.linalg.norm(normal)
+    if length > 0:
+        normal = normal / length
+    return normal, v0
+
+def split_face(face, normal, p0, vertices):
+    front_indices = []
+    back_indices = []
+    indices = face['indices']
+
+    for i in range(len(indices)):
+        v1_idx = indices[i]
+        v2_idx = indices[(i + 1) % len(indices)]
+
+        v1 = np.array(vertices[v1_idx][:3])
+        v2 = np.array(vertices[v2_idx][:3])
+
+        d1 = np.dot(normal, v1 - p0)
+        d2 = np.dot(normal, v2 - p0)
+
+        if d1 >= 1e-5:
+            front_indices.append(v1_idx)
+        elif d1 <= -1e-5:
+            back_indices.append(v1_idx)
+        else:
+            front_indices.append(v1_idx)
+            back_indices.append(v1_idx)
+
+    if (d1 > 1e-5 and d2 < -1e-5) or (d1 < -1e-5 and d2 > 1e-5):
+        t = d1 / (d1 - d2)
+        inter_p = v1 + t * (v2 - v1)
+        inter_v = [inter_p[0], inter_p[1], inter_p[2], 0.1]
+
+        vertices.append(inter_v)
+        inter_idx = len(vertices) - 1
+
+        front_indices.append(inter_idx)
+        back_indices.append(inter_idx)
+
+    front_face = {'indices': front_indices, 'color': face['color']} if len(front_indices) >= 3 else None
+    back_face = {'indices': back_indices, 'color': face['color']} if len(back_indices) >= 3 else None
+
+    return front_face, back_face
+
+def build_bsp_tree(faces, vertices):
+    if not faces:   return None
+
+    root_face = faces[len(faces) // 2]
+    node = BSPNode(root_face)
+
+    normal, p0 = get_plane_equation(root_face, vertices)
+
+    front_faces = []
+    back_faces = []
+
+    for face in faces:
+        if face == root_face: continue
+
+        front_count = 0
+        back_count = 0
+
+        for idx in face['indices']:
+            v = np.array(vertices[idx])
+            distance = np.dot(normal, v - p0)
+            if distance > 1e-5: front_count += 1
+            elif distance < -1e-5: back_count += 1
+
+        if front_count > 0 and back_count == 0:
+            front_faces.append(face)
+        elif back_count > 0 and front_count == 0:
+            back_faces.append(face)
+        elif front_count == 0 and back_count == 0:
+            front_faces.append(face)
+        else:
+            front_face, back_face = split_face(face, normal, p0, vertices)
+            if front_face: front_faces.append(front_face)
+            if back_face: back_faces.append(back_face)
+    
+    node.front = build_bsp_tree(front_faces, vertices)
+    node.back = build_bsp_tree(back_faces, vertices)
+    return node
+
+bsp_root = build_bsp_tree(faces, vertices_list)
+original_vertices = np.array(vertices_list, dtype=np.float32)
+vertices = original_vertices.copy()
+
 original_zoom = 500
 zoom = original_zoom
 
@@ -32,73 +131,29 @@ def reset_scene():
     vertices = original_vertices.copy()
     zoom = original_zoom
 
-def test1(p, q): # is bounding box of p intersecting with bounding box of q?
-    if p['min_x'] > q['max_x'] or p['max_x'] < q['min_x']: return False
-    if p['min_y'] > q['max_y'] or p['max_y'] < q['min_y']: return False
-    return True
+def traverse_bsp(node, current_vertices, render_list):
+    if node is None: return
 
-def get_plane_equation(face):
-    v0 = np.array(face[0][:3])
-    v1 = np.array(face[1][:3])
-    v2 = np.array(face[2][:3])
+    normal, p0 = get_plane_equation(node.face, current_vertices)
 
-    vec1 = v1 - v0
-    vec2 = v2 - v0
-    normal = np.cross(vec1, vec2)
-    if np.dot(normal, v0) > 0:
-        normal = -normal
-    return normal, v0
+    distance = np.dot(normal, -p0)
 
-def test3(vertices, plane_normal, plane_point): # do all vertices of one face are on the same side of the plane?
-    for v in vertices:
-        point = np.array(v[:3])
-        if np.dot(plane_normal, point - plane_point) > 0.001:
-            return False
-    return True
-
-def test4(vertices, plane_normal, plane_point): # are all vertices in frot of a plane?
-    for v in vertices:
-        point = np.array(v[:3])
-        if np.dot(plane_normal, point - plane_point) < -0.001:
-            return False
-    return True
-
-def newell_algo(p, q):
-    if p['max_z'] > q['max_z']: 
-        if p['min_z'] >= q['max_z']: return -1
-
-        if not test1(p, q): return -1
-        
-        q_normal, q_point = get_plane_equation(q['original_vertices'])
-        p_normal, p_point = get_plane_equation(p['original_vertices'])
-
-        if test3(p['original_vertices'], q_normal, q_point): return -1
-        if test4(q['original_vertices'], p_normal, p_point): return -1
-        return 1
-
-
-    elif p['max_z'] < q['max_z']:
-        if q['min_z'] >= p['max_z']: return 1
-
-        if not test1(q, p): return 1
-    
-        p_normal, p_point = get_plane_equation(p['original_vertices'])
-        q_normal, q_point = get_plane_equation(q['original_vertices'])
-
-        if test3(q['original_vertices'], p_normal, p_point): return 1
-        if test4(p['original_vertices'], q_normal, q_point): return 1
-        return -1
-
-    return 0
-
-
+    if distance > 0:
+        traverse_bsp(node.back, current_vertices, render_list)
+        render_list.append(node.face)
+        traverse_bsp(node.front, current_vertices, render_list)
+    else:
+        traverse_bsp(node.front, current_vertices, render_list)
+        render_list.append(node.face)
+        traverse_bsp(node.back, current_vertices, render_list)
 
 def draw_scene():
     screen.fill(BLACK)
 
     polygons_to_draw = []
+    traverse_bsp(bsp_root, vertices, polygons_to_draw)
 
-    for face in faces:
+    for face in polygons_to_draw:
         indices = face['indices']
         color = face['color']
         
@@ -108,7 +163,6 @@ def draw_scene():
             continue
 
         projected_points = []
-        max_z = max(v[2] for v in face_vertices)
 
         for v in face_vertices:
             z = v[2]
@@ -120,30 +174,12 @@ def draw_scene():
 
             projected_points.append((x_resized, y_resized))
 
-        x_coords = [p[0] for p in projected_points]
-        y_coords = [p[1] for p in projected_points]
-
-        one_face = {
-        "points": projected_points,
-        "color": color,
-        "max_z": max_z,
-        "original_vertices": face_vertices,
-        "min_z": min([v[2] for v in face_vertices]),
-        "min_x": min(x_coords),
-        "max_x": max(x_coords),
-        "min_y": min(y_coords),
-        "max_y": max(y_coords)
-        }
-        polygons_to_draw.append(one_face)
-
-    polygons_to_draw.sort(key=cmp_to_key(newell_algo))
-
-    for polygon in polygons_to_draw:
-        pygame.draw.polygon(screen, polygon['color'], polygon['points'])
-        pygame.draw.polygon(screen, LIME, polygon['points'], 1)
+        
+        if len(projected_points) >= 3:
+            pygame.draw.polygon(screen, color, projected_points)
+            pygame.draw.polygon(screen, LIME, projected_points, 1)
     pygame.display.flip()
     
-draw_scene()
 
 def translate_scene(dx, dy, dz):
     global vertices
